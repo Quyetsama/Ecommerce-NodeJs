@@ -3,6 +3,7 @@ const categoryRouter = require('./category')
 const productRouter = require('./product')
 const voucherRouter = require('./voucher')
 const orderRouter = require('./order')
+const notificationRouter = require('./notification')
 
 
 const route = (app) => {
@@ -12,12 +13,15 @@ const route = (app) => {
     app.use('/api/v1/product', productRouter)
     app.use('/api/v1/voucher', voucherRouter)
     app.use('/api/v1/order', orderRouter)
+    app.use('/api/v1/notification', notificationRouter)
     
     app.get('/', (req, res, next) => {
-        return res.status(200).json({
-            success: true,
-            message: 'Server is ok!'
-        })
+        setTimeout(() => {
+            return res.status(200).json({
+                success: true,
+                message: 'Server is ok!'
+            })
+        }, 3000)
     })
 
     app.use((req, res, next) => {
@@ -27,6 +31,7 @@ const route = (app) => {
     })
     
     app.use((err, req, res, next) => {
+        console.log(err)
         const status = err.status || 500
         return res.status(status).json({
             error: {

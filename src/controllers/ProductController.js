@@ -1,4 +1,5 @@
 const Product = require('../models/Product')
+const User = require('../models/User')
 const Category = require('../models/Category')
 const mongoose = require('mongoose')
 const ObjectId = mongoose.Types.ObjectId
@@ -63,8 +64,22 @@ const newProduct = async (req, res, next) => {
 
 // GET /detail/:id
 const getProductByID = async (req, res, next) => {
-    const product = await Product.findById(req.params.id).populate('categories')
-    return res.status(200).json(product)
+    const product = await Product.findById(req.params.id).populate('categories').lean()
+
+    if(req.user) {
+        const user = await User.findOne({
+            _id: req.user._id,
+            favorite: product._id
+        })
+
+        if(user) {
+            return res.status(200).json({...product, favorite: true})
+        }
+        
+    }
+    
+
+    return res.status(200).json({...product, favorite: false})
 }
 
 // GET /:idCategory
@@ -73,7 +88,7 @@ const getProductsByCategories = async (req, res, next) => {
     const page = + req.query.page
     if(page) {
         const countSkip = (page - 1) * PAGE_SIZE
-        const products = await Product.find({ categories: idCategory }, skipObject)
+        const products = await Product.find({ categories: idCategory }, {...skipObject, image: { $slice: 1 }})
                                 .skip(countSkip).limit(PAGE_SIZE)
         return res.status(200).json({ products })
     }
@@ -100,7 +115,7 @@ const searchProduct = async (req, res, next) => {
     const { name } = req.query
 
     const productFound = await Product.aggregate([
-        {$match: { name: { $regex : name } }},
+        {$match: { name: { $regex : name, $options: 'i' } }},
         {$project: { _id: 1, name: 1, image: { $first: '$image' } }}
     ]).skip(0).limit(20)
 
@@ -238,10 +253,10 @@ const handleMatch = (req) => {
         findArgs[key] = JSON.parse(req.query[key])
     }
 
-    console.log(findArgs)
+    // console.log(findArgs)
 
     const match = {
-        name: { $regex : req.query.name },
+        name: { $regex : req.query.name, $options: 'i' },
         ...(findArgs.filters?.price?.max > 0 && {price: { $gte: +findArgs.filters?.price.min, $lte: +findArgs.filters?.price.max }}),
         ...(findArgs.filters?.category !== '' && {categories: ObjectId(findArgs.filters?.category)})
     }

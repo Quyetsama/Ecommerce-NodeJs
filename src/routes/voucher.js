@@ -8,6 +8,7 @@ const passportConfig = require('../middlewares/passport')
 
 router.get('/', customPassport.passportJWT, voucherController.index)
 router.post('/', customPassport.passportJWT, voucherController.newVoucher)
+router.get('/:code', customPassport.passportJWT, voucherController.getVoucherByCode)
 router.get('/store/:id', customPassport.passportJWT, voucherController.storeVoucher)
 
 

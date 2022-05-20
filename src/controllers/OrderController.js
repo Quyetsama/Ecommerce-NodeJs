@@ -2,6 +2,8 @@ const Order = require('../models/Order')
 const OrderInfo = require('../models/OrderInfo')
 const User = require('../models/User')
 const Voucher = require('../models/Voucher')
+const Notify = require('../models/Notify')
+const NotifyController = require('./NotifyController')
 const moment = require('moment')
 
 
@@ -33,13 +35,36 @@ const deliveringOrder = async (req, res, next) => {
 
     const newOrder = await Order.findByIdAndUpdate(id, {
         status: 1
-    }, {new : true})
+    }, {new : true}).populate('user', '_id tokenDevices')
+
+    const newNotify = await Notify.create(new Notify({
+        title: 'Đã xác nhận đơn hàng',
+        subTitle: 'Kiểm tra đi em :))',
+        body: 'Đơn hàng của bạn đã được xác nhận, chờ nhận hàng nhé <3', 
+        image: 'https://images.unsplash.com/photo-1649859398731-d3c4ebca53fc?ixlib=rb-1.2.1&ixid=MnwxMjA3fDF8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80',
+        type: 1,
+        user: newOrder.user._id
+    }))
+
+    const msg = await NotifyController.sendtoUser(
+        newOrder.user.tokenDevices,
+        {
+            title: newNotify.title,
+            subTitle: newNotify.subTitle,
+            body: newNotify.body, 
+            image: newNotify.image,
+            color: '#CC0033'
+        }
+    )
 
     return res.status(201).json({
         success: true,
-        newOrder
+        // newOrder,
+        newNotify
+        // msg
     })
 }
+
 const deliveredOrder = async (req, res, next) => {
 
     const { id } = req.body
@@ -47,12 +72,33 @@ const deliveredOrder = async (req, res, next) => {
     const newOrder = await Order.findByIdAndUpdate(id, {
         status: 2,
         deliveryTime: moment().format()
-    }, {new : true})
+    }, {new : true}).populate('user', '_id tokenDevices')
+
+    const newNotify = await Notify.create(new Notify({
+        title: 'Đơn hàng đã được giao',
+        subTitle: 'Kiểm tra đi em :))',
+        body: 'Đơn hàng của bạn đã được giao', 
+        image: 'https://images.unsplash.com/photo-1649859398731-d3c4ebca53fc?ixlib=rb-1.2.1&ixid=MnwxMjA3fDF8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80',
+        type: 2,
+        user: newOrder.user._id
+    }))
+
+    const msg = await NotifyController.sendtoUser(
+        newOrder.user.tokenDevices,
+        {
+            title: newNotify.title,
+            subTitle: newNotify.subTitle,
+            body: newNotify.body, 
+            image: newNotify.image,
+            color: '#CC0033'
+        }
+    )
 
 
     return res.status(201).json({
         success: true,
-        newOrder
+        newOrder,
+        msg
     })
 }
 

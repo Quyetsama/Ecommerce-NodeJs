@@ -3,6 +3,7 @@ const productController = require('../controllers/ProductController')
 const { validateParam, validateBody, schemas } = require('../helpers/routerHelpers')
 const passport = require('passport')
 const passportConfig = require('../middlewares/passport')
+const customPassport = require('../middlewares/customPassport')
 
 
 router.get('/test', productController.test)
@@ -22,7 +23,7 @@ router.get('/demo', productController.demo)
 router.get('/:idCategory', productController.getProductsByCategories)
 
 
-router.get('/detail/:id', productController.getProductByID)
+router.get('/detail/:id', customPassport.notRequirePassportJWT, productController.getProductByID)
 
 
 

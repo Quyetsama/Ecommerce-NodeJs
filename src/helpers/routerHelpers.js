@@ -24,7 +24,7 @@ const validateBody = (schema) => {
         const validatorResult = schema.validate(req.body)
 
         if(validatorResult.error) {
-            return res.status(400).json({
+            return res.status(403).json({
                 success: false,
                 message: validatorResult.error.details[0].message
             })
@@ -57,7 +57,8 @@ const schemas = {
 
     authSignInSchema: Joi.object().keys({
         email: Joi.string().email().required().messages(customMessage('email')),
-        password: Joi.string().min(6).max(32).required().messages(customMessage('password'))
+        password: Joi.string().min(6).max(32).required().messages(customMessage('password')),
+        tokenDevice: Joi.string().required().messages(customMessage('tokenDevice'))
     }),
 
     idSchema: Joi.object().keys({

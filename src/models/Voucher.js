@@ -5,6 +5,11 @@ const Schema = mongoose.Schema
 
 const VoucherSchema = new Schema(
     {
+        code: {
+            type: String,
+            unique: true,
+            required: true
+        },
         title: {
             type: String,
             required: true

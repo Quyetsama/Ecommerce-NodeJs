@@ -1,5 +1,6 @@
 const User = require('../models/User')
 const Shop = require('../models/Shop')
+const Notify = require('../models/Notify')
 const JWT = require('jsonwebtoken')
 
 
@@ -45,6 +46,12 @@ const signUp = async (req, res, next) => {
 }
 
 const signIn = async (req, res, next) => {
+    const { tokenDevice } = req.body
+    await User.updateOne(
+        { _id: req.user._id },
+        { $addToSet: { tokenDevices: tokenDevice } }
+    )
+
     const token = encodedToken(req.user._id)
 
     const profile = {
@@ -61,10 +68,28 @@ const signIn = async (req, res, next) => {
     return res.status(200).json({ success: true, profile })
 }
 
+const logout = async (req, res, next) => {
+    const { tokenDevice } = req.body
+
+    await User.updateOne(
+        { _id: req.user._id },
+        { $pull: { tokenDevices: tokenDevice } }
+    )
+
+    return res.status(200).json({ success: true })
+}
+
 // GET user/profile
 const getCurrentUser = async (req, res, next) => {
 
-    const user = await User.findById(req.user._id).populate('shop')
+    // const user = await User.findById(req.user._id).populate('shop')
+
+    const notify = await Notify.countDocuments(
+        { 
+            user: req.user._id,
+            read: false
+        }
+    )
 
     const profile = {
         _id: req.user._id,
@@ -76,7 +101,7 @@ const getCurrentUser = async (req, res, next) => {
         shop: req.user.shop
     }
 
-    return res.status(200).json({ success: true, profile })
+    return res.status(200).json({ success: true, profile, countNotify: notify })
     // return res.status(200).json({ success: true, profile, user })
 }
 
@@ -100,6 +125,23 @@ const createShop = async (req, res, next) => {
     })
 }
 
+const favoriteProduct = async (req, res, next) => {
+
+    const { love } = req.query
+    const { product } = req.body
+
+    await User.updateOne(
+        { _id: req.user._id },
+        {
+            ...(love === 'true' ? { $addToSet: { favorite: product } } : { $pull: { favorite: product } })
+        }
+    )
+
+    return res.status(200).json({
+        success: true
+    })
+}
+
 const secret = (req, res, next) => {
     console.log(req.user['password'])
     return res.status(200).json({ profile: req.user })
@@ -110,7 +152,9 @@ module.exports = {
     newUser,
     signIn,
     signUp,
+    logout,
     secret,
     getCurrentUser,
-    createShop
+    createShop,
+    favoriteProduct
 }

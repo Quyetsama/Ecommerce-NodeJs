@@ -12,7 +12,6 @@ passport.use(new JwtStrategy({
     secretOrKey: process.env.JWT_SECRET
 }, async (jwt_payload, done) => {
     try{
-        // console.log(jwt_payload)
         const user = await User.findById(jwt_payload.sub)
 
         if(!user) return done(null, false)
@@ -28,7 +27,7 @@ passport.use(new JwtStrategy({
 // Passport local
 passport.use(new LocalStrategy({
     // Phai trung voi name gui len
-    usernameField: 'email'
+    usernameField: 'email',
 }, async (email, password, done) => {
     try {
         const user = await User.findOne({ email })

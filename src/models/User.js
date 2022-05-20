@@ -35,6 +35,10 @@ const UserSchema = new Schema(
             type: String,
             default: 'user'
         },
+        tokenDevices: {
+            type: Array,
+            default: []
+        },
         coin: {
             type: Number,
             default: 0

@@ -17,8 +17,26 @@ const index = async (req, res, next) => {
 
 const newVoucher = async (req, res, next) => {
 
-    const newVoucher = await Voucher.create(req.body)
+    const { code, title, description, expired, classify } = req.body
+
+    const newVoucher = await Voucher.create(new Voucher({ code, title, description, expired, classify }))
     return res.status(201).json({ newVoucher })
+}
+
+const getVoucherByCode = async (req, res, next) => {
+    const { code } = req.params
+
+    const voucher = await Voucher.findOne(
+        { 
+            "code": { $regex : '^' + code + '$', $options: 'i' },
+            "used": { $nin: [ req.user._id ] }
+        }
+    )
+
+    return res.status(200).json({
+        success: true,
+        data: voucher
+    })
 }
 
 const storeVoucher = async (req, res, next) => {
@@ -48,5 +66,6 @@ const storeVoucher = async (req, res, next) => {
 module.exports = { 
     index,
     newVoucher,
+    getVoucherByCode,
     storeVoucher
 }
