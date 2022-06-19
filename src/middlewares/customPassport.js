@@ -6,6 +6,7 @@ const passportJWT = (req, res, next) => {
         if (err || !user) {
             const err = {}
             // err.status = 401;
+            err.success = false
             err.message = 'Unauthorized'
     
             return res.status(401).json(err) // send the error response to client
@@ -28,7 +29,23 @@ const notRequirePassportJWT = (req, res, next) => {
                             to override default functionality */ 
 }
 
+const passportLocal = (req, res, next) => {
+    passport.authenticate('local', { session: false }, (err, user, info) => {
+        if (err || !user) {
+            const err = {}
+            err.success = false
+            err.message = 'Your email or password incorrect.'
+
+    
+            return res.status(401).json(err)
+        }
+        req.user = user
+        return next()
+    })(req, res, next)
+}
+
 module.exports = {
     passportJWT,
-    notRequirePassportJWT
+    notRequirePassportJWT,
+    passportLocal
 }

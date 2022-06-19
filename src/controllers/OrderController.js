@@ -1,6 +1,7 @@
 const Order = require('../models/Order')
 const OrderInfo = require('../models/OrderInfo')
 const User = require('../models/User')
+const Product = require('../models/Product')
 const Voucher = require('../models/Voucher')
 const Notify = require('../models/Notify')
 const NotifyController = require('./NotifyController')
@@ -72,7 +73,21 @@ const deliveredOrder = async (req, res, next) => {
     const newOrder = await Order.findByIdAndUpdate(id, {
         status: 2,
         deliveryTime: moment().format()
-    }, {new : true}).populate('user', '_id tokenDevices')
+    }, {new : true}).populate('user', '_id tokenDevices').populate('ordersInfo', 'product quantity').lean()
+
+    let arrOrdersInfo = newOrder.ordersInfo
+
+    arrOrdersInfo.forEach(async item => {
+        await Product.updateOne(
+            { _id : item.product }, 
+            { $inc : { sold : +item.quantity } },
+        )
+    })
+
+    await User.updateOne(
+        { _id: newOrder.user._id },
+        { $inc: { coin: +Math.round(newOrder.total * 3 / 100) } }
+    )
 
     const newNotify = await Notify.create(new Notify({
         title: 'Đơn hàng đã được giao',
@@ -155,10 +170,42 @@ const detailOrder = async (req, res, next) => {
     })
 }
 
+const test = async (req, res, next) => {
+
+    const { id } = req.body
+
+    const newOrder = await Order.findById(id).populate('user', '_id tokenDevices').populate('ordersInfo', 'product quantity').lean()
+
+    let arrOrdersInfo = newOrder.ordersInfo
+
+    // arrOrdersInfo.forEach((item, index, arr) => {
+    //     arr[index] = item.product
+    // })
+
+    arrOrdersInfo.forEach(async item => {
+        await Product.updateOne(
+            { _id : item.product }, 
+            { $inc : { sold : +arrOrdersInfo.quantity } },
+        )
+    })
+
+    // await Product.updateMany(
+    //     { _id : { $in: arrIDProduct } }, 
+    //     { $inc : { sold : req.body[i].name } },
+    //     {multi : true}
+    // )
+
+    return res.status(200).json({
+        success: true,
+        data: arrOrdersInfo
+    })
+}
+
 module.exports = { 
     index,
     deliveringOrder,
     deliveredOrder,
     newOrder,
-    detailOrder
+    detailOrder,
+    test
 }

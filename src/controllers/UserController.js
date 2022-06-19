@@ -31,18 +31,34 @@ const newUser = async (req, res, next) => {
 }
 
 const signUp = async (req, res, next) => {
-    const { fullName, email, password } = req.value.body
+    const { fullName, email, password, tokenDevice } = req.value.body
     // Check email same
     const foundUser = await User.findOne({ email })
-    if(foundUser) return res.status(403).json({ error: { message: 'Email is already in use' } })
+    if(foundUser) return res.status(403).json({
+        success: false,
+        message: 'Email is already in use'
+    })
 
     // New user
-    const newUser = await User.create({ fullName, email, password })
+    const user = new User({
+        fullName,
+        email,
+        password,
+        tokenDevices: [tokenDevice]
+    })
+    const newUser = await User.create(user)
 
     const token = encodedToken(newUser._id)
     res.setHeader('Authorization', 'bearer ' + token)
 
-    return res.status(201).json({ success: true, token: 'bearer ' + token })
+    return res.status(201).json({ 
+        success: true,
+        data: {
+            fullName,
+            email,
+            coin: 0
+        }
+    })
 }
 
 const signIn = async (req, res, next) => {
@@ -59,13 +75,16 @@ const signIn = async (req, res, next) => {
         fullName: req.user.fullName,
         email: req.user.email,
         coin: req.user.coin,
-        role: req.user.role,
-        favorite: req.user.favorite,
-        shopName: req.user.shopName
+        // role: req.user.role,
+        // favorite: req.user.favorite,
+        // shopName: req.user.shopName
     }
 
     res.setHeader('Authorization', 'bearer ' + token)
-    return res.status(200).json({ success: true, profile })
+
+    setTimeout(() => {
+        return res.status(200).json({ success: true, data: profile })
+    }, 3000)
 }
 
 const logout = async (req, res, next) => {
@@ -142,6 +161,32 @@ const favoriteProduct = async (req, res, next) => {
     })
 }
 
+const getFavorites = async (req, res, next) => {
+
+    let user = await User.findById(req.user._id, { _id: 1 }).populate({ path: 'favorite', select: {
+        _id: 1,
+        name: 1,
+        sold: 1,
+        price: 1,
+        image: { $slice: ['$image', 1] }
+    }}).lean()
+
+    let favorites = user.favorite
+
+    return res.status(200).json({
+        success: true,
+        data: favorites
+    })
+}
+
+const getCoin = async (req, res, next) => {
+
+    return res.status(200).json({
+        success: true,
+        data: req.user.coin
+    })
+}
+
 const secret = (req, res, next) => {
     console.log(req.user['password'])
     return res.status(200).json({ profile: req.user })
@@ -156,5 +201,7 @@ module.exports = {
     secret,
     getCurrentUser,
     createShop,
-    favoriteProduct
+    favoriteProduct,
+    getFavorites,
+    getCoin
 }

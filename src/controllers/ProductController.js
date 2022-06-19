@@ -15,11 +15,17 @@ const index = async (req, res, next) => {
         const countSkip = (page - 1) * PAGE_SIZE
         const products = await Product.find({}, {...skipObject, image: { $slice: 1 }})
                                 .skip(countSkip).limit(PAGE_SIZE)
-        return res.status(200).json({ products })
+        return res.status(200).json({ 
+            success: true,
+            data: products
+        })
     }
     else {
         const products = await Product.find({}, {...skipObject, image: { $slice: 1 }})
-        return res.status(200).json({ products })
+        return res.status(200).json({ 
+            success: true,
+            data: products
+        })
     }
 }
 
@@ -90,11 +96,17 @@ const getProductsByCategories = async (req, res, next) => {
         const countSkip = (page - 1) * PAGE_SIZE
         const products = await Product.find({ categories: idCategory }, {...skipObject, image: { $slice: 1 }})
                                 .skip(countSkip).limit(PAGE_SIZE)
-        return res.status(200).json({ products })
+        return res.status(200).json({ 
+            success: true,
+            data: products
+        })
     }
     else {
         const products = await Product.find({ categories: idCategory }, skipObject)
-        return res.status(200).json({ products })
+        return res.status(200).json({ 
+            success: true,
+            data: products
+        })
     }
 }
 
@@ -128,7 +140,7 @@ const searchProduct = async (req, res, next) => {
 const suggestProduct = async (req, res, next) => {
 
     const products = await Product.aggregate([
-        {$project: { _id: 1, name: 1, image: { $first: '$image' } }},
+        {$project: { _id: 1, name: 1, price: 1, sold: 1, discount: 1, image: { $first: '$image' } }},
         {$sample: {size: 5}}
     ])
 
