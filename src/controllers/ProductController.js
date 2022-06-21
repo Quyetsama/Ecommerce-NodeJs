@@ -88,6 +88,25 @@ const getProductByID = async (req, res, next) => {
     return res.status(200).json({...product, favorite: false})
 }
 
+const getClassifyProductByID = async (req, res, next) => {
+    const product = await Product.findById(
+        req.params.id,
+        {
+            name: 1, 
+            image: 1, 
+            price: 1,
+            discount: 1,
+            transportFee: 1,
+            classify: 1
+        }
+    )
+
+    return res.status(200).json({
+        success: true,
+        data: product
+    })
+}
+
 // GET /:idCategory
 const getProductsByCategories = async (req, res, next) => {
     const { idCategory } = req.params
@@ -304,6 +323,7 @@ module.exports = {
     index,
     newProduct,
     getProductByID,
+    getClassifyProductByID,
     getProductsByCategories,
     test,
     rateProduct,

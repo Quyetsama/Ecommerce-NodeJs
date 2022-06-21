@@ -24,6 +24,7 @@ router.get('/:idCategory', productController.getProductsByCategories)
 
 
 router.get('/detail/:id', customPassport.notRequirePassportJWT, productController.getProductByID)
+router.get('/classify/:id', productController.getClassifyProductByID)
 
 
 
