@@ -23,7 +23,7 @@ const index = async (req, res, next) => {
     const orders = await Order.find(
         { user: req.user._id, status: req.params.status },
         { code: 1, ordersInfo: 1, total: 1, createdAt: 1 }
-    )
+    ).sort({ createdAt: -1 })
     return res.status(200).json({
         success: true,
         orders 
@@ -119,28 +119,35 @@ const deliveredOrder = async (req, res, next) => {
 
 const newOrder = async (req, res, next) => {
 
-    const { bill, products, contact, address } = req.body
+    let { bill, products, contact, address } = req.body
 
     // console.log({ bill, products, contact, address })
 
     await User.updateOne({ _id: req.user._id }, { $inc: { coin: -bill.coin } })
     await Voucher.updateOne({ _id: bill.voucher }, { $addToSet: { used: req.user._id } })
 
-    const newOrderInfo = await OrderInfo.insertMany(products)
-
-    const listId = newOrderInfo.map(item => item._id)
-
     const newOrder = new Order({
         code: makeid(7).toLocaleUpperCase(),
         user: req.user._id,
         contact: {...contact},
         address: {...address},
-        ordersInfo: listId,
+        // ordersInfo: listId,
         price: bill.price,
         transportFee: bill.transportFee,
         discount: bill.discount,
         total: bill.total
     })
+
+    products.forEach(item => {
+        item.order = newOrder._id
+    })
+
+    const newOrderInfo = await OrderInfo.insertMany(products)
+
+    const listId = newOrderInfo.map(item => item._id)
+
+    newOrder.ordersInfo = listId
+    
     await newOrder.save()
 
     return res.status(201).json({ 
@@ -167,6 +174,38 @@ const detailOrder = async (req, res, next) => {
     return res.status(200).json({
         success: true,
         data: orderFound
+    })
+}
+
+const ratingOrder = async (req, res, next) => {
+    const { _id, products } = req.body
+
+    console.log(_id, products)
+
+    const orderFound = await Order.findById(_id)
+
+    if(!orderFound || orderFound.rating) {
+        return res.status(201).json({
+            success: false
+        })
+    }
+
+    products.forEach(async item => {
+        await OrderInfo.updateOne(
+            { product : item._id, order: _id }, 
+            { rating : +item.rating },
+        )
+        await Product.updateOne(
+            { _id : item._id }, 
+            { $inc : { 'rate.star' : +item.rating, 'rate.count' : 1 } },
+        )
+    })
+
+    orderFound.rating = true
+    await orderFound.save()
+
+    return res.status(201).json({
+        success: true
     })
 }
 
@@ -207,5 +246,6 @@ module.exports = {
     deliveredOrder,
     newOrder,
     detailOrder,
+    ratingOrder,
     test
 }

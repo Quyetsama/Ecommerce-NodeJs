@@ -168,6 +168,8 @@ const getFavorites = async (req, res, next) => {
         name: 1,
         sold: 1,
         price: 1,
+        discount: 1,
+        rate: 1,
         image: { $slice: ['$image', 1] }
     }}).lean()
 

@@ -11,9 +11,11 @@ router.get('/test', productController.test)
 
 router.get('/', productController.index)
 router.post('/create', passport.authenticate('jwt', { session: false }), productController.newProduct)
+router.post('/', productController.upload, productController.createProduct)
 
 router.get('/search', productController.searchProduct)
 router.get('/suggest', productController.suggestProduct)
+router.get('/carousel', productController.carouselProduct)
 router.get('/related', productController.getProductRelated)
 router.get('/selling', productController.getProductSelling)
 router.get('/price', productController.getProductPriceUpDown)

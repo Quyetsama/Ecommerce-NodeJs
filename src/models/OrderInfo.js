@@ -20,7 +20,15 @@ const OrderInfoSchema = new Schema(
         quantity: {
             type: Number,
             required: true
-        }
+        },
+        rating: {
+            type: Number,
+            default: null
+        },
+        order: {
+            type: Schema.Types.ObjectId,
+            ref: 'Order'
+        },
     },
     {
         timestamps: true,

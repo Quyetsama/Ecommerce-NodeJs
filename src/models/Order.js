@@ -69,6 +69,10 @@ const OrderSchema = new Schema(
         deliveryTime: {
             type: Date,
             default: null
+        },
+        rating: {
+            type: Boolean,
+            default: false
         }
     },
     {

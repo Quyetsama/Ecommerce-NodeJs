@@ -22,15 +22,19 @@ const ProductSchema = new Schema(
             type: Schema.Types.ObjectId,
             ref: 'Category'
         }],
-        classify: Schema.Types.Mixed,
+        // classify: Schema.Types.Mixed,
+        classify: [{
+            type: Schema.Types.Mixed,
+            default: []
+        }],
         price: {
             type: Number,
             required: true
         },
-        quantity: {
-            type: Number,
-            default: null
-        },
+        // quantity: {
+        //     type: Number,
+        //     default: null
+        // },
         discount: {
             type: Number,
             min: 1,
@@ -49,14 +53,14 @@ const ProductSchema = new Schema(
             star: { type: Number, default: 0 },
             count: { type: Number, default: 0 }
         },
-        comments: [{
-            type: Schema.Types.ObjectId,
-            ref: 'Comment'
-        }],
-        owner: {
-            type: Schema.Types.ObjectId,
-            ref: 'User'
-        }
+        // comments: [{
+        //     type: Schema.Types.ObjectId,
+        //     ref: 'Comment'
+        // }],
+        // owner: {
+        //     type: Schema.Types.ObjectId,
+        //     ref: 'User'
+        // }
     },
     {
         timestamps: true,

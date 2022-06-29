@@ -3,11 +3,49 @@ const User = require('../models/User')
 const Category = require('../models/Category')
 const mongoose = require('mongoose')
 const ObjectId = mongoose.Types.ObjectId
+const multer = require('multer')
 const { v4: uuidv4 } = require('uuid')
 const fs = require('fs')
 const { isEmpty } = require('lodash')
 const PAGE_SIZE = 3
 const skipObject = { description: 0, classify: 0, quantily: 0, comments: 0, categories: 0, owner: 0, createdAt: 0, updatedAt: 0, __v: 0 }
+
+
+
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, './src/publics/image')
+      },
+    filename: function (req, file, cb) {
+        cb(null, uuidv4() + '.png')
+    }
+})
+
+const uploadImg = multer({
+    storage: storage,
+    fileFilter: function (req, file, cb) {
+        if (file.mimetype === 'image/png' || file.mimetype === 'image/jpeg') {
+            return cb(null, true);
+        }
+        
+        req.fileValidationError = 'Error';
+        return cb(null, false, new Error('goes wrong on the mimetype'));
+    }
+}).array('image', 12)
+
+const upload = (req, res, next) => {
+    uploadImg(req, res, function (err) {
+        if(req.fileValidationError) {
+            return res.status(400).json({
+                success: false,
+                message: req.fileValidationError
+            })
+        }
+        next()
+    })
+}
+
+
 // GET /
 const index = async (req, res, next) => {
     const page = + req.query.page
@@ -65,6 +103,29 @@ const newProduct = async (req, res, next) => {
         success: true,
         message: 'Thêm sản phẩm thành công',
         newProduct 
+    })
+}
+
+const createProduct = async (req, res, next) => {
+    const { name, description, classify, category, price, transportfee } = req.body
+
+    const arrImage = req.files?.map(item => (
+        item.filename
+    ))
+
+    const newProduct = await Product.create({
+        name: name,
+        description: description,
+        image: arrImage,
+        categories: category,
+        ...(classify && { classify: classify }),
+        price: price,
+        transportFee: transportfee,
+    })
+    
+    return res.status(200).json({
+        success: true,
+        product: newProduct
     })
 }
 
@@ -159,9 +220,31 @@ const searchProduct = async (req, res, next) => {
 const suggestProduct = async (req, res, next) => {
 
     const products = await Product.aggregate([
-        {$project: { _id: 1, name: 1, price: 1, sold: 1, discount: 1, image: { $first: '$image' } }},
+        {$project: { _id: 1, name: 1, price: 1, sold: 1, discount: 1, category: 1, image: { $first: '$image' } }},
         {$sample: {size: 5}}
     ])
+
+    return res.status(200).json({
+        success: true,
+        data: products
+    })
+}
+
+const carouselProduct = async (req, res, next) => {
+
+    // const products = await Product.aggregate([
+    //     // { "$unwind": "$Category" },
+    //     { 
+    //         $lookup: {
+    //             from: "$categories",
+    //             localField: "categories",
+    //             foreignField: "_id",
+    //             as: "categories"
+    //         }
+    //     },
+    //     // {$project: { _id: 1, name: 1, price: 1, sold: 1, discount: 1, category: 1, image: { $first: '$image' } }},
+    //     // {$sample: {size: 5}}
+    // ])
 
     return res.status(200).json({
         success: true,
@@ -179,7 +262,7 @@ const getProductRelated = async (req, res, next) => {
             {
                 $match: match
             },
-            {$project: { _id: 1, name: 1, image: { $first: '$image' }, price: 1, sold: 1 }}
+            {$project: { _id: 1, name: 1, image: { $first: '$image' }, price: 1, sold: 1, discount: 1, rate: 1 }}
         ]).skip(countSkip).limit(PAGE_SIZE)
         return res.status(200).json({ 
             success: true,
@@ -204,7 +287,7 @@ const getProductSelling = async (req, res, next) => {
             {
                 $match: match
             },
-            {$project: { _id: 1, name: 1, image: { $first: '$image' }, price: 1, sold: 1 }}
+            {$project: { _id: 1, name: 1, image: { $first: '$image' }, price: 1, sold: 1, discount: 1, rate: 1 }}
         ]).sort({ sold: -1 }).skip(countSkip).limit(PAGE_SIZE)
         return res.status(200).json({ 
             success: true,
@@ -229,7 +312,7 @@ const getProductPriceUpDown = async (req, res, next) => {
             {
                 $match: match
             },
-            {$project: { _id: 1, name: 1, image: { $first: '$image' }, price: 1, sold: 1 }}
+            {$project: { _id: 1, name: 1, image: { $first: '$image' }, price: 1, sold: 1, discount: 1, rate: 1 }}
         ]).sort({ price: sort === 'desc' ? -1 : 1 }).skip(countSkip).limit(PAGE_SIZE)
         
         return res.status(200).json({ 
@@ -255,7 +338,7 @@ const searchFilter = async (req, res, next) => {
             {
                 $match: match
             },
-            {$project: { _id: 1, name: 1, image: { $first: '$image' }, price: 1, sold: 1, categories: 1 }}
+            {$project: { _id: 1, name: 1, image: { $first: '$image' }, price: 1, sold: 1, categories: 1, discount: 1, rate: 1 }}
         ]).sort({ price: sort === 'desc' ? -1 : 1 }).skip(countSkip).limit(PAGE_SIZE)
         
         return res.status(200).json({ 
@@ -278,20 +361,24 @@ const searchFilter = async (req, res, next) => {
 const handleMatch = (req) => {
     const baseQuery = ['name', 'page', 'sort', 'category']
     const findArgs = {}
-    for(const key in req.query) {
-        // console.log(key)
-        if(baseQuery.includes(key)) continue
-        findArgs[key] = JSON.parse(req.query[key])
-    }
+    // console.log(req.query)
+
+    // for(const key in req.query) {
+    //     // console.log(key)
+    //     if(baseQuery.includes(key)) continue
+    //     findArgs[key] = JSON.parse(req.query[key])
+    // }
 
     // console.log(findArgs)
 
     const match = {
         name: { $regex : req.query.name, $options: 'i' },
-        ...(findArgs.filters?.price?.max > 0 && {price: { $gte: +findArgs.filters?.price.min, $lte: +findArgs.filters?.price.max }}),
-        ...(findArgs.filters?.category !== '' && {categories: ObjectId(findArgs.filters?.category)})
+        // ...(findArgs.filters?.price?.max > 0 && {price: { $gte: +findArgs.filters?.price.min, $lte: +findArgs.filters?.price.max }}),
+        // ...(findArgs.filters?.category !== '' && {categories: ObjectId(findArgs.filters?.category)})
+        ...(req.query.max && req.query.min && req.query.max > req.query.min && {price: { $gte: +req.query.min, $lte: +req.query.max }}),
+        ...(req.query.category !== '' && {categories: ObjectId(req.query.category)})
     }
-
+    // console.log(match)
     return match
 }
 
@@ -322,6 +409,8 @@ const demo = async (req, res, next) => {
 module.exports = {
     index,
     newProduct,
+    upload,
+    createProduct,
     getProductByID,
     getClassifyProductByID,
     getProductsByCategories,
@@ -329,6 +418,7 @@ module.exports = {
     rateProduct,
     searchProduct,
     suggestProduct,
+    carouselProduct,
     getProductRelated,
     getProductSelling,
     getProductPriceUpDown,
